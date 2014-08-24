@@ -200,6 +200,12 @@ pypi-server understands the following options:
   -r PACKAGES_DIRECTORY, --root PACKAGES_DIRECTORY
     [deprecated] serve packages from PACKAGES_DIRECTORY
 
+  --authuser username
+    basic http authentication username
+
+  --authpass password
+    basic http authentication password
+
   -o, --overwrite
     allow overwriting existing package files
 
@@ -251,6 +257,9 @@ def main(argv=None):
     update_directory = None
     update_stable_only = True
 
+    auth_username = ''
+    auth_password = ''
+
     try:
         opts, roots = getopt.getopt(argv[1:], "i:p:r:d:P:Uuxoh", [
             "interface=",
@@ -261,6 +270,8 @@ def main(argv=None):
             "fallback-url=",
             "disable-fallback",
             "overwrite",
+            "authuser=",
+            "authpass=",
             "version",
             "help"
         ])
@@ -302,6 +313,11 @@ def main(argv=None):
         elif k in ("-h", "--help"):
             usage()
             sys.exit(0)
+        elif k == '--authuser':
+            auth_username = v
+        elif k == '--authpass':
+            auth_password = v
+
 
     if len(roots) == 0:
         roots.append(os.path.expanduser("~/packages"))
@@ -321,6 +337,8 @@ def main(argv=None):
         password_file=password_file,
         fallback_url=fallback_url,
         overwrite=overwrite,
+        auth_username = auth_username,
+        auth_password = auth_password
     )
     server = server or "auto"
     sys.stdout.write("This is pypiserver %s serving %r on http://%s:%s\n\n" % (__version__, ", ".join(roots), host, port))

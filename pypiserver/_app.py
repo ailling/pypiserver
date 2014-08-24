@@ -10,7 +10,7 @@ if sys.version_info >= (3, 0):
 else:
     from urlparse import urljoin
 
-from bottle import static_file, redirect, request, HTTPError, Bottle
+from bottle import static_file, redirect, request, HTTPError, Bottle, auth_basic
 from pypiserver import __version__
 from pypiserver.core import listdir, find_packages, store, get_prefixes, exists
 
@@ -22,6 +22,8 @@ class configuration(object):
         self.fallback_url = "http://pypi.python.org/simple"
         self.redirect_to_fallback = True
         self.htpasswdfile = None
+        self.auth_username = ''
+        self.auth_password = ''
 
 config = configuration()
 
@@ -36,7 +38,9 @@ def configure(root=None,
               redirect_to_fallback=True,
               fallback_url=None,
               password_file=None,
-              overwrite=False):
+              overwrite=False,
+              auth_username = '',
+              auth_password = ''):
     global packages
 
     if root is None:
@@ -67,8 +71,16 @@ def configure(root=None,
         from passlib.apache import HtpasswdFile
         config.htpasswdfile = HtpasswdFile(password_file)
     config.overwrite = overwrite
+    config.auth_password = auth_password
+    config.auth_username = auth_username
 
 app = Bottle()
+
+def check(user, pw):
+    if not config.auth_username or not config.auth_password:
+        return True
+    else:
+        return user == config.auth_username and pw == config.auth_password
 
 
 @app.route("/favicon.ico")
@@ -76,7 +88,9 @@ def favicon():
     return HTTPError(404)
 
 
+
 @app.route('/')
+@auth_basic(check)
 def root():
     fp = request.fullpath
 
@@ -109,6 +123,7 @@ easy_install -i %(URL)ssimple/ PACKAGE
 
 
 @app.post('/')
+@auth_basic(check)
 def update():
     if not request.auth or request.auth[1] is None:
         raise HTTPError(401, header={"WWW-Authenticate": 'Basic realm="pypi"'})
@@ -171,11 +186,13 @@ def update():
 
 
 @app.route("/simple")
+@auth_basic(check)
 def simpleindex_redirect():
     return redirect(request.fullpath + "/")
 
 
 @app.route("/simple/")
+@auth_basic(check)
 def simpleindex():
     res = ["<html><head><title>Simple Index</title></head><body>\n"]
     for x in sorted(get_prefixes(packages())):
@@ -186,6 +203,7 @@ def simpleindex():
 
 @app.route("/simple/:prefix")
 @app.route("/simple/:prefix/")
+@auth_basic(check)
 def simple(prefix=""):
     fp = request.fullpath
     if not fp.endswith("/"):
@@ -209,6 +227,7 @@ def simple(prefix=""):
 
 @app.route('/packages')
 @app.route('/packages/')
+@auth_basic(check)
 def list_packages():
     fp = request.fullpath
     if not fp.endswith("/"):
@@ -225,6 +244,7 @@ def list_packages():
 
 
 @app.route('/packages/:filename#.*#')
+@auth_basic(check)
 def server_static(filename):
     entries = find_packages(packages())
     for x in entries:
@@ -237,6 +257,7 @@ def server_static(filename):
 
 @app.route('/:prefix')
 @app.route('/:prefix/')
+@auth_basic(check)
 def bad_url(prefix):
     p = request.fullpath
     if p.endswith("/"):

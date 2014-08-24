@@ -1,12 +1,14 @@
-__version_info__ = (1, 1, 6)
-version = __version__ = "1.1.6"
+__version_info__ = (1, 2, 1)
+version = __version__ = "1.2.1"
 
 
 def app(root=None,
         redirect_to_fallback=True,
         fallback_url=None,
         password_file=None,
-        overwrite=False):
+        overwrite=False,
+        auth_username='',
+        auth_password=''):
     import sys, os
     from pypiserver import core
     sys.modules.pop("pypiserver._app", None)
@@ -22,7 +24,7 @@ def app(root=None,
         fallback_url = "http://pypi.python.org/simple"
 
     _app.configure(root=root, redirect_to_fallback=redirect_to_fallback, fallback_url=fallback_url,
-                   password_file=password_file, overwrite=overwrite)
+                   password_file=password_file, overwrite=overwrite, auth_username = auth_username, auth_password = auth_password)
     _app.app.module = _app
 
     bottle.debug(True)

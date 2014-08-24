@@ -30,3 +30,4 @@ __pycache__/
 /develop-eggs/
 /eggs/
 /parts/
+venv/
